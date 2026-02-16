@@ -42,33 +42,36 @@
 param(
     [Parameter()]
     [string]$DotfilesDir = "$HOME\dotfiles",
-    
+
     [Parameter()]
     [string]$TargetDir = "",
-    
+
     [Parameter()]
     [switch]$Delete,
-    
+
     [Parameter()]
     [switch]$Restow,
-    
+
     [Parameter()]
     [switch]$DryRun,
-    
+
     [Parameter()]
     [string]$StowCommand = "zstow"
 )
 
 # Use environment variable if set
-if ($env:DOTFILES_DIR) {
+if ($env:DOTFILES_DIR)
+{
     $DotfilesDir = $env:DOTFILES_DIR
 }
-if ($env:STOW_CMD) {
+if ($env:STOW_CMD)
+{
     $StowCommand = $env:STOW_CMD
 }
 
 # Verify dotfiles directory exists
-if (-not (Test-Path -Path $DotfilesDir -PathType Container)) {
+if (-not (Test-Path -Path $DotfilesDir -PathType Container))
+{
     Write-Host "Error: Dotfiles directory not found: $DotfilesDir" -ForegroundColor Red
     exit 1
 }
@@ -81,24 +84,28 @@ $excludeDirs = @('scripts', 'bin', 'docs', '.git', '.gitignore')
 
 $packages = Get-ChildItem -Path $DotfilesDir -Directory -Force | Where-Object {
     $name = $_.Name
-    
-    if ($name -eq '.' -or $name -eq '..') {
+
+    if ($name -eq '.' -or $name -eq '..')
+    {
         return $false
     }
-    
-    if ($excludeDirs -contains $name) {
+
+    if ($excludeDirs -contains $name)
+    {
         return $false
     }
-    
-    if ($name -match '^(README|LICENSE)') {
+
+    if ($name -match '^(README|LICENSE)')
+    {
         return $false
     }
-    
+
     return $true
 } | Select-Object -ExpandProperty Name
 
 # Check if any packages found
-if ($packages.Count -eq 0) {
+if ($packages.Count -eq 0)
+{
     Write-Host "No packages found in $DotfilesDir" -ForegroundColor Yellow
     exit 0
 }
@@ -106,22 +113,27 @@ if ($packages.Count -eq 0) {
 # Build stow arguments
 $stowArgs = @()
 
-if ($TargetDir) {
+if ($TargetDir)
+{
     $stowArgs += "-t", $TargetDir
 }
 
-if ($Delete) {
+if ($Delete)
+{
     $stowArgs += "-D"
-} elseif ($Restow) {
+} elseif ($Restow)
+{
     $stowArgs += "-R"
 }
 
-if ($DryRun) {
+if ($DryRun)
+{
     $stowArgs += "-n"
 }
 
 # Check for -Verbose using the automatic common parameter from [CmdletBinding()]
-if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
+if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent)
+{
     $stowArgs += "-v"
 }
 
@@ -137,20 +149,25 @@ Write-Host ""
 # Change to dotfiles directory
 Push-Location $DotfilesDir
 
-try {
+try
+{
     & $StowCommand @stowArgs
-    
-    if ($LASTEXITCODE -eq 0) {
+
+    if ($LASTEXITCODE -eq 0)
+    {
         Write-Host ""
         Write-Host "Done!" -ForegroundColor Green
-    } else {
+    } else
+    {
         Write-Host ""
         Write-Host "Stow command failed with exit code: $LASTEXITCODE" -ForegroundColor Red
         exit $LASTEXITCODE
     }
-} catch {
+} catch
+{
     Write-Host "Error executing stow command: $_" -ForegroundColor Red
     exit 1
-} finally {
+} finally
+{
     Pop-Location
 }
