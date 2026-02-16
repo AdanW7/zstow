@@ -1,4 +1,3 @@
-#Requires -Version 5.1
 <#
 .SYNOPSIS
     Stow all packages in your dotfiles directory.
@@ -21,9 +20,6 @@
 
 .PARAMETER DryRun
     Show what would be done without actually doing it.
-
-.PARAMETER Verbose
-    Enable verbose output.
 
 .EXAMPLE
     .\stow-all.ps1
@@ -60,25 +56,19 @@ param(
     [switch]$DryRun,
     
     [Parameter()]
-    [switch]$Verbose,
-    
-    [Parameter()]
     [string]$StowCommand = "zstow"
 )
 
 # Use environment variable if set
-if ($env:DOTFILES_DIR)
-{
+if ($env:DOTFILES_DIR) {
     $DotfilesDir = $env:DOTFILES_DIR
 }
-if ($env:STOW_CMD)
-{
+if ($env:STOW_CMD) {
     $StowCommand = $env:STOW_CMD
 }
 
 # Verify dotfiles directory exists
-if (-not (Test-Path -Path $DotfilesDir -PathType Container))
-{
+if (-not (Test-Path -Path $DotfilesDir -PathType Container)) {
     Write-Host "Error: Dotfiles directory not found: $DotfilesDir" -ForegroundColor Red
     exit 1
 }
@@ -87,27 +77,20 @@ if (-not (Test-Path -Path $DotfilesDir -PathType Container))
 $DotfilesDir = Resolve-Path $DotfilesDir
 
 # Find all package directories
-# Exclude only specific directories that shouldn't be stowed
 $excludeDirs = @('scripts', 'bin', 'docs', '.git', '.gitignore')
 
 $packages = Get-ChildItem -Path $DotfilesDir -Directory -Force | Where-Object {
     $name = $_.Name
     
-    # Skip . and .. (shouldn't happen but just in case)
-    if ($name -eq '.' -or $name -eq '..')
-    {
+    if ($name -eq '.' -or $name -eq '..') {
         return $false
     }
     
-    # Skip specific excluded directories
-    if ($excludeDirs -contains $name)
-    {
+    if ($excludeDirs -contains $name) {
         return $false
     }
     
-    # Skip README and LICENSE prefixed items
-    if ($name -match '^(README|LICENSE)')
-    {
+    if ($name -match '^(README|LICENSE)') {
         return $false
     }
     
@@ -115,8 +98,7 @@ $packages = Get-ChildItem -Path $DotfilesDir -Directory -Force | Where-Object {
 } | Select-Object -ExpandProperty Name
 
 # Check if any packages found
-if ($packages.Count -eq 0)
-{
+if ($packages.Count -eq 0) {
     Write-Host "No packages found in $DotfilesDir" -ForegroundColor Yellow
     exit 0
 }
@@ -124,26 +106,22 @@ if ($packages.Count -eq 0)
 # Build stow arguments
 $stowArgs = @()
 
-if ($TargetDir)
-{
+if ($TargetDir) {
     $stowArgs += "-t", $TargetDir
 }
 
-if ($Delete)
-{
+if ($Delete) {
     $stowArgs += "-D"
-} elseif ($Restow)
-{
+} elseif ($Restow) {
     $stowArgs += "-R"
 }
 
-if ($DryRun)
-{
+if ($DryRun) {
     $stowArgs += "-n"
 }
 
-if ($Verbose)
-{
+# Check for -Verbose using the automatic common parameter from [CmdletBinding()]
+if ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent) {
     $stowArgs += "-v"
 }
 
@@ -159,26 +137,20 @@ Write-Host ""
 # Change to dotfiles directory
 Push-Location $DotfilesDir
 
-try
-{
-    # Execute stow command
+try {
     & $StowCommand @stowArgs
-
-    if ($LASTEXITCODE -eq 0)
-    {
+    
+    if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Host "Done!" -ForegroundColor Green
-    } else
-    {
+    } else {
         Write-Host ""
         Write-Host "Stow command failed with exit code: $LASTEXITCODE" -ForegroundColor Red
         exit $LASTEXITCODE
     }
-} catch
-{
+} catch {
     Write-Host "Error executing stow command: $_" -ForegroundColor Red
     exit 1
-} finally
-{
+} finally {
     Pop-Location
 }
